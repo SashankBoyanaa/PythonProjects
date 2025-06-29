@@ -2,8 +2,6 @@
 import pandas as pd
 import numpy as np
 
-# Suppress FutureWarning for silent downcasting
-pd.set_option('future.no_silent_downcasting', True)
 
 #Preprocessing and importing models from scikit-learn
 from sklearn.compose import ColumnTransformer
