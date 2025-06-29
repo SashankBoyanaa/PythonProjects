@@ -2,6 +2,9 @@
 import pandas as pd
 import numpy as np
 
+# Suppress FutureWarning for silent downcasting
+pd.set_option('future.no_silent_downcasting', True)
+
 #Preprocessing and importing models from scikit-learn
 from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
@@ -10,6 +13,8 @@ from sklearn.impute import SimpleImputer
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
+from sklearn.model_selection import cross_val_score
 
 #Setting a random seed
 SEED = 42
@@ -48,14 +53,14 @@ full.loc[~condition, zero_col] = full.loc[~condition, zero_col].fillna(0)
 
 #Filling missing VIP values with False
 for col in false_col:
-    full.loc[~condition, col] = full.loc[~condition, col].fillna(False)
+    full.loc[~condition, col] = full.loc[~condition, col].fillna(False).astype(bool)
 
 
 condition = (full[zero_col].eq(0).all(axis=1))
-full.loc[condition, 'CryoSleep'] = full.loc[condition, 'CryoSleep'].fillna(True)
+full.loc[condition, 'CryoSleep'] = full.loc[condition, 'CryoSleep'].fillna(True).astype(bool)
 
 # Filling remaining missing values with False
-full['CryoSleep'] = full['CryoSleep'].fillna(False)
+full['CryoSleep'] = full['CryoSleep'].fillna(False).astype(bool)
 
 #Splitting 'Cabin' column into 'Deck', 'CabinNum', and 'Side'
 full[['Deck', 'CabinNum', 'Side']] = full['Cabin'].str.split('/', expand=True)
@@ -167,6 +172,17 @@ output = pd.DataFrame({
     'PassengerId': test['PassengerId'],
     'Transported': ensemble_predictions
 })
+# Evaluating base models on validation set
+print("GradientBoosting Model 1 Accuracy:", accuracy_score(y_test, gbm_1_predictions))
+print("GradientBoosting Model 2 Accuracy:", accuracy_score(y_test, gbm_2_predictions))
+print("GradientBoosting Model 3 Accuracy:", accuracy_score(y_test, gbm_3_predictions))
 
+# Cross-validation on one base model
+cv_scores = cross_val_score(gbm_model_1, X_train, y_train, cv=5)
+print("Cross-validation scores (Model 1):", cv_scores)
+print("Average CV score:", np.mean(cv_scores))
+
+# Accuracy of meta model
+print("Meta Model (LogReg) Accuracy:", accuracy_score(y_test, meta_model.predict(stacked_features)))
 #Saving submission files
 output.to_csv('submission.csv', index=False)
